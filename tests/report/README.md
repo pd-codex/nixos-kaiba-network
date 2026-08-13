@@ -30,9 +30,9 @@ canonical snapshots appear under `zones/`.
 The provisioning input follows
 [`provisioning.schema.json`](provisioning.schema.json). It records automated
 checks per target system and a separate manual hardware-qualification state.
-Automated checks may be `passed`, `failed`, or `not-observed`; their derived
-overall state is respectively `passed`, `failed` if any check failed, or
-`partial` if at least one check was not observed. Hardware qualification is
+Automated checks may be `passed`, `failed`, or `not-observed`. Their derived
+overall state is `failed` if any check failed, `partial` if none failed and at
+least one was not observed, and `passed` otherwise. Hardware qualification is
 `pending`, `passed`, or `failed` and never changes the DNS or automated result.
 Pending qualification has no evidence; a passed or failed qualification must
 cite evidence. `mutation_eligible` is always false in this probe-only report.
