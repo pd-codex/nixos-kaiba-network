@@ -9,7 +9,7 @@ whitelist-redacted JSON emitted by `kaiba-provision qualify` here, named
 into the reserved public report namespace
 `evidence/provisioning/hardware-qualification/`.
 
-Adding the completed record makes `tests/provisioning/packages.nix` derive the
+Adding the completed record makes `tests/packages.nix` derive the
 report status, description, and evidence path from it. The build rejects a
 record whose profile policy/adapter or pinned probe inputs differ from the
 current packaged inputs. The checked ceremony record retains the exact
@@ -21,6 +21,6 @@ probe executable digest is checked on the CI system matching the record's
 bundle, firmware, and config digests. `source_revision` identifies the frozen
 ceremony revision; reviewers must verify that provenance whenever a change
 adds or replaces this record. Update the checked canonical snapshot in
-`tests/provisioning/report-input.json` in the same reviewed commit. A pending
+`tests/report-input.json` in the same reviewed commit. A pending
 qualification must continue to cite no evidence, and an `incomplete` preflight
 record must never be added here.

@@ -1399,7 +1399,7 @@ path must continue to reject `enrollment_ready`.
 [Pi 5 secure-boot design]: ./raspberry-pi-5-secure-boot.md
 [live provisioning runbook]: ./raspberry-pi-5-live-provisioning.md
 [Pi 5 provisioning-probe runbook]: ./raspberry-pi-5-provisioning-probe.md
-[qualification record]: ../tests/provisioning/evidence/sacrificial-pi-5.json
+[qualification record]: ../provisioning/tests/evidence/sacrificial-pi-5.json
 [pinned EEPROM source tag]: https://github.com/raspberrypi/rpi-eeprom/releases/tag/v2026.05.17-2711-0138c0
 [pinned EEPROM source commit]: https://github.com/raspberrypi/rpi-eeprom/commit/05d94be4554ce44a057bfce8d0dd37d951703dab
 [pinned Pi 5 recovery payload]: https://github.com/raspberrypi/rpi-eeprom/blob/05d94be4554ce44a057bfce8d0dd37d951703dab/firmware-2712/latest/recovery.bin
@@ -1409,7 +1409,7 @@ path must continue to reject `enrollment_ready`.
 [EEPROM helper compatibility commit]: https://github.com/raspberrypi/rpi-eeprom/commit/25f837ab8009a643ed85b9aad94d911baddaf0c4
 [signed-release manifest contract]: ../provisioning/internal/provisioning/bundle/release.go
 [signed-release assembler]: ../provisioning/internal/provisioning/signedrelease/verify.go
-[signed-release Nix factory]: ../nix/provisioning/signed-release.nix
+[signed-release Nix factory]: ../provisioning/signed-release.nix
 [secure-boot bundle manifest]: ../provisioning/internal/provisioning/bundle/manifest.go
 [artifact-role vocabulary]: ../provisioning/internal/provisioning/bundle/role.go
 [release-intent contract]: ../provisioning/internal/provisioning/releaseintent/release_intent.go
@@ -1421,4 +1421,4 @@ path must continue to reject `enrollment_ready`.
 [physical Pi 5 adapter]: ../provisioning/internal/provisioning/physicalrpi5/adapter.go
 [live-station entry point]: ../provisioning/cmd/kaiba-provision-station/main.go
 [Pi 5 device profile]: ../provisioning/profiles/device-classes/raspberry-pi-5-model-b-v1alpha1.json
-[hardware-evidence handling rules]: ../tests/provisioning/evidence/README.md
+[hardware-evidence handling rules]: ../provisioning/tests/evidence/README.md

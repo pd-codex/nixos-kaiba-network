@@ -20,7 +20,7 @@ resume it; retain it as evidence and require manual reconciliation or
 quarantine.
 
 ```console
-nix run ./nix/provisioning#kaiba-provision-integrated-rehearsal -- \
+nix run ./provisioning#kaiba-provision-integrated-rehearsal -- \
   --state-dir /tmp/kaiba-integrated-rehearsal-1 \
   --rehearsal-id first-integrated-run
 ```
@@ -56,13 +56,13 @@ A successful report must include:
 Failure and uncertain-result exercises use distinct exit codes:
 
 ```console
-nix run ./nix/provisioning#kaiba-provision-integrated-rehearsal -- \
+nix run ./provisioning#kaiba-provision-integrated-rehearsal -- \
   --state-dir /tmp/kaiba-integrated-rehearsal-failure \
   --rehearsal-id failure-at-recovery \
   --inject-at 4 \
   --inject-outcome failed
 
-nix run ./nix/provisioning#kaiba-provision-integrated-rehearsal -- \
+nix run ./provisioning#kaiba-provision-integrated-rehearsal -- \
   --state-dir /tmp/kaiba-integrated-rehearsal-uncertain \
   --rehearsal-id uncertain-at-intent \
   --inject-at 1 \

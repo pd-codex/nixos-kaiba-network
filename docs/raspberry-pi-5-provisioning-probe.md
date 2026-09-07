@@ -90,7 +90,7 @@ provisioning leaf without importing the DNS packages or modules:
 
 ```nix
 inputs.kaiba-provisioning = {
-  url = "github:ams-tech/nixos-kaiba-network?dir=nix/provisioning";
+  url = "github:ams-tech/nixos-kaiba-network?dir=provisioning";
   inputs.nixpkgs.follows = "nixpkgs";
 };
 ```
@@ -132,8 +132,8 @@ From a checkout, the provisioning boundary can be checked and its probe
 package built independently:
 
 ```console
-nix flake check ./nix/provisioning -L
-nix build ./nix/provisioning#kaiba-provision -L
+nix flake check ./provisioning -L
+nix build ./provisioning#kaiba-provision -L
 ```
 
 ## Running the probe
@@ -455,15 +455,15 @@ validate the transferred schema-valid, whitelist-redacted record before
 review:
 
 ```console
-nix develop ./nix/provisioning --command check-jsonschema \
+nix develop ./provisioning --command check-jsonschema \
   --schemafile provisioning/schemas/rpi5-hardware-qualification-v1alpha1.schema.json \
   /path/to/hardware-qualification.json
 ```
 
 Keep both raw probe files private. Copy only the final qualifier output into
-`tests/provisioning/evidence/sacrificial-pi-5.json` during the reviewed closeout
+`provisioning/tests/evidence/sacrificial-pi-5.json` during the reviewed closeout
 change. That change must also update the checked canonical snapshot in
-`tests/provisioning/report-input.json`; the Nix expression derives status and
+`provisioning/tests/report-input.json`; the Nix expression derives status and
 the evidence path from the completed record and binds it to the current profile
 policy and pinned probe inputs. The executable digest is checked by the CI job
 whose Nix system matches the recorded station; architecture-independent probe

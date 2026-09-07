@@ -247,15 +247,15 @@ On a clean review-workstation checkout of the exact frozen revision, validate
 the transferred record independently:
 
 ```console
-nix develop ./nix/provisioning --command check-jsonschema \
+nix develop ./provisioning --command check-jsonschema \
   --schemafile provisioning/schemas/rpi5-hardware-qualification-v1alpha1.schema.json \
   /path/to/hardware-qualification.json
 ```
 
 Verify that its `source_revision` equals that frozen revision. For a reviewed
 closeout, copy only this final record to
-`tests/provisioning/evidence/sacrificial-pi-5.json` and update
-`tests/provisioning/report-input.json` as described in the runbook. After a
+`provisioning/tests/evidence/sacrificial-pi-5.json` and update
+`provisioning/tests/report-input.json` as described in the runbook. After a
 successful transfer, reboot the station to clear all volatile evidence before
 starting another ceremony.
 
