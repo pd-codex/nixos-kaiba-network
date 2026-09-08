@@ -9,7 +9,7 @@ power, staging media, or carrying an OTP-capable artifact.
 Run the happy path from a checkout:
 
 ```console
-nix run ./provisioning#kaiba-provision-rehearsal -- \
+nix run github:PseudoDesign/kaiba-provisioning#kaiba-provision-rehearsal -- \
   --rehearsal-id local-happy-path
 ```
 
@@ -23,10 +23,10 @@ Failure and uncertain-result paths are deterministic and have distinct exit
 codes:
 
 ```console
-nix run ./provisioning#kaiba-provision-rehearsal -- \
+nix run github:PseudoDesign/kaiba-provisioning#kaiba-provision-rehearsal -- \
   --rehearsal-id local-failure --inject-at 4 --inject-outcome failed
 
-nix run ./provisioning#kaiba-provision-rehearsal -- \
+nix run github:PseudoDesign/kaiba-provisioning#kaiba-provision-rehearsal -- \
   --rehearsal-id local-uncertain --inject-at 1 --inject-outcome uncertain
 ```
 
