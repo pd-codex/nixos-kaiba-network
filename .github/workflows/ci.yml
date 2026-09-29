@@ -57,6 +57,7 @@ jobs:
           nix --accept-flake-config build --no-link -L \
             .#checks.x86_64-linux.ci-workflow \
             .#checks.x86_64-linux.module-eval \
+            .#checks.x86_64-linux.lan-module-eval \
             .#checks.x86_64-linux.report-unit \
             .#checks.x86_64-linux.unit
 
@@ -85,6 +86,7 @@ jobs:
           nix --accept-flake-config build --no-link -L \
             .#checks.aarch64-linux.ci-workflow \
             .#checks.aarch64-linux.module-eval \
+            .#checks.aarch64-linux.lan-module-eval \
             .#checks.aarch64-linux.unit \
             .#packages.aarch64-linux.kaiba-agent \
             .#packages.aarch64-linux.kaiba-controller \
@@ -123,6 +125,16 @@ jobs:
 
       - name: Build the canonical DNS test report
         run: nix --accept-flake-config build .#dns-test-report --out-link result -L
+
+      - name: Qualify isolated LAN primary and replicas
+        run: nix --accept-flake-config build .#checks.x86_64-linux.lan-qualification --out-link lan-result -L
+
+      - name: Upload LAN qualification evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lan-dns-qualification
+          path: lan-result/lan-qualification-result.json
+          if-no-files-found: error
 
       - name: Verify the report manifest
         id: verify_report

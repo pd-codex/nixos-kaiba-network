@@ -10,6 +10,11 @@ separate publisher projects that state to a writable hidden primary using
 RFC 2136 and TSIG, then verifies the result through redundant public
 authorities.
 
+The opt-in [LAN qualification profile](docs/lan-qualification.md) runs one
+loopback primary and two separate read-only replica processes on Ace. It composes
+the SPIFFE application path for isolated LAN validation without changing public
+delegation or resolver settings.
+
 ## Repository layout
 
 - `dns/` contains the Go commands and private implementation packages.
