@@ -10,10 +10,12 @@ separate publisher projects that state to a writable hidden primary using
 RFC 2136 and TSIG, then verifies the result through redundant public
 authorities.
 
-The opt-in [LAN qualification profile](docs/lan-qualification.md) runs one
-loopback primary and two separate read-only replica processes on Ace. It composes
-the SPIFFE application path for isolated LAN validation without changing public
-delegation or resolver settings.
+The opt-in [two-host LAN profile](docs/lan-two-host.md) places the writable
+primary on Ace and a read-only secondary on Mako, with a transfer-only runtime
+credential handoff. It retains the SPIFFE updater/controller authorization path
+and leaves public delegation and resolver settings unchanged. The earlier
+[same-host qualification profile](docs/lan-qualification.md) remains available
+for its isolated process-level tests.
 
 ## Repository layout
 

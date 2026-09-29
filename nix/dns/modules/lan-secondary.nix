@@ -1,0 +1,1 @@
+{ ... }: { imports = [ ./lan-host.nix ]; }

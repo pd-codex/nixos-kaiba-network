@@ -58,6 +58,7 @@ jobs:
             .#checks.x86_64-linux.ci-workflow \
             .#checks.x86_64-linux.module-eval \
             .#checks.x86_64-linux.lan-module-eval \
+            .#checks.x86_64-linux.lan-two-host-module-eval \
             .#checks.x86_64-linux.report-unit \
             .#checks.x86_64-linux.unit
 
@@ -87,6 +88,7 @@ jobs:
             .#checks.aarch64-linux.ci-workflow \
             .#checks.aarch64-linux.module-eval \
             .#checks.aarch64-linux.lan-module-eval \
+            .#checks.aarch64-linux.lan-two-host-module-eval \
             .#checks.aarch64-linux.unit \
             .#packages.aarch64-linux.kaiba-agent \
             .#packages.aarch64-linux.kaiba-controller \
@@ -134,6 +136,16 @@ jobs:
         with:
           name: lan-dns-qualification
           path: lan-result/lan-qualification-result.json
+          if-no-files-found: error
+
+      - name: Qualify primary and secondary on separate hosts
+        run: nix --accept-flake-config build .#checks.x86_64-linux.lan-two-host --out-link lan-two-host-result -L
+
+      - name: Upload two-host DNS evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lan-two-host-dns
+          path: lan-two-host-result/lan-two-host-result.json
           if-no-files-found: error
 
       - name: Verify the report manifest

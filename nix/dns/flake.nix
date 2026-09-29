@@ -30,6 +30,8 @@
         update-controller = import ./modules/update-controller.nix;
         update-services = import ./modules/update-services.nix;
         lan-qualification = import ./modules/lan-qualification.nix;
+        lan-primary = import ./modules/lan-primary.nix;
+        lan-secondary = import ./modules/lan-secondary.nix;
         hidden-primary = import ./modules/hidden-primary.nix;
         hidden-standby = import ./modules/hidden-standby.nix;
         public-secondary = import ./modules/public-secondary.nix;
@@ -86,6 +88,12 @@
         {
           unit = built.suite;
           module-eval = moduleEvalFor system;
+          lan-two-host-module-eval = import ../../tests/integration/lan-two-host-module-eval.nix {
+            pkgs = import nixpkgs { inherit system; };
+            inherit lib;
+            kaibaPackage = built.suite;
+            kaibaModules = modules;
+          };
           lan-module-eval = import ../../tests/integration/lan-module-eval.nix {
             pkgs = import nixpkgs { inherit system; };
             inherit lib;
@@ -94,6 +102,12 @@
           };
         }
         // lib.optionalAttrs (system == "x86_64-linux") {
+          lan-two-host = import ../../tests/integration/lan-two-host.nix {
+            pkgs = import nixpkgs { inherit system; };
+            inherit lib;
+            kaibaPackage = built.suite;
+            kaibaModules = modules;
+          };
           lan-qualification = import ../../tests/integration/lan-qualification.nix {
             pkgs = import nixpkgs { inherit system; };
             inherit lib;
