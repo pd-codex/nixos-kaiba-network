@@ -27,18 +27,28 @@ let
     executable
     "--endpoint"
     cfg.endpoint
-    "--client-cert"
-    (toString cfg.credentials.clientCertificate)
-    "--client-key"
-    (toString cfg.credentials.clientKey)
-    "--ca"
-    (toString cfg.credentials.serverCA)
+    "--identity-mode"
+    cfg.identity.mode
     "--idempotency-state"
     cfg.idempotencyStateFile
     "--renew-interval"
     cfg.renewInterval
     "--request-timeout"
     cfg.requestTimeout
+  ]
+  ++ optionals (cfg.identity.mode == "file") [
+    "--client-cert"
+    (toString cfg.credentials.clientCertificate)
+    "--client-key"
+    (toString cfg.credentials.clientKey)
+    "--ca"
+    (toString cfg.credentials.serverCA)
+  ]
+  ++ optionals (cfg.identity.mode == "spiffe") [
+    "--workload-api-socket"
+    cfg.identity.workloadAPISocket
+    "--controller-spiffe-id"
+    cfg.identity.controllerSPIFFEID
   ]
   ++ concatMap (address: [
     "--address"
@@ -114,6 +124,28 @@ in
       };
     };
 
+    identity = {
+      mode = mkOption {
+        type = types.enum [
+          "file"
+          "spiffe"
+        ];
+        default = "file";
+        description = "Explicit transport identity mode; SPIFFE requires a separately provisioned Workload API registration.";
+      };
+      workloadAPISocket = mkOption {
+        type = types.str;
+        default = "";
+        example = "unix:///run/kaiba/identity/provider/public/api.sock";
+        description = "Local SPIFFE Workload API endpoint for this DNS updater only.";
+      };
+      controllerSPIFFEID = mkOption {
+        type = types.str;
+        default = "";
+        description = "Exact controller SPIFFE ID; endpoint DNS names do not authorize the server in SPIFFE mode.";
+      };
+    };
+
     stateDirectory = mkOption {
       type = types.strMatching "[a-zA-Z0-9][a-zA-Z0-9_.-]*";
       default = "kaiba-agent";
@@ -168,9 +200,12 @@ in
       }
       {
         assertion =
-          cfg.credentials.clientCertificate != null
-          && cfg.credentials.clientKey != null
-          && cfg.credentials.serverCA != null;
+          cfg.identity.mode != "file"
+          || (
+            cfg.credentials.clientCertificate != null
+            && cfg.credentials.clientKey != null
+            && cfg.credentials.serverCA != null
+          );
         message = "The device agent requires clientCertificate, clientKey, and serverCA runtime paths.";
       }
       {
@@ -182,12 +217,26 @@ in
       }
       {
         assertion =
-          builtins.length (unique [
-            cfg.credentials.clientCertificate
-            cfg.credentials.clientKey
-            cfg.credentials.serverCA
-          ]) == 3;
+          cfg.identity.mode != "file"
+          ||
+            builtins.length (unique [
+              cfg.credentials.clientCertificate
+              cfg.credentials.clientKey
+              cfg.credentials.serverCA
+            ]) == 3;
         message = "Device certificate, private key, and server CA files must be distinct.";
+      }
+      {
+        assertion =
+          if cfg.identity.mode == "spiffe" then
+            cfg.credentials.clientCertificate == null
+            && cfg.credentials.clientKey == null
+            && cfg.credentials.serverCA == null
+            && builtins.match "unix:///[^?#]+" cfg.identity.workloadAPISocket != null
+            && hasPrefix "spiffe://" cfg.identity.controllerSPIFFEID
+          else
+            cfg.identity.workloadAPISocket == "" && cfg.identity.controllerSPIFFEID == "";
+        message = "SPIFFE mode requires an explicit local Workload API socket and exact controller SPIFFE ID, exclusively from file credentials.";
       }
       {
         assertion = hasPrefix "/var/lib/${cfg.stateDirectory}/" cfg.idempotencyStateFile;
@@ -241,7 +290,8 @@ in
           "AF_INET"
           "AF_INET6"
           "AF_NETLINK"
-        ];
+        ]
+        ++ optionals (cfg.identity.mode == "spiffe") [ "AF_UNIX" ];
         RestrictNamespaces = true;
         RestrictRealtime = true;
         RestrictSUIDSGID = true;

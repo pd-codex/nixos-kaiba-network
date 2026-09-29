@@ -195,7 +195,91 @@ let
       ];
 
   invalidRejected = !assertionsPass recursionViolation;
+
+  spiffeServices = lib.recursiveUpdate applicationServices {
+    kaiba.deviceAgent = {
+      identity = {
+        mode = "spiffe";
+        workloadAPISocket = "unix:///run/kaiba/identity/local/public/api.sock";
+        controllerSPIFFEID = "spiffe://owner.test/device/controller/instance/one/workload/dns-controller";
+      };
+      credentials = {
+        clientCertificate = null;
+        clientKey = null;
+        serverCA = null;
+      };
+    };
+    kaiba.updateController = {
+      identity = {
+        mode = "spiffe";
+        workloadAPISocket = "unix:///run/kaiba/identity/local/public/api.sock";
+        trustDomain = "owner.test";
+        fleetAuthorizationURL = "https://fleet.test:8096";
+        fleetServerSPIFFEID = "spiffe://owner.test/device/fleet/instance/one/workload/registry";
+      };
+      credentials = {
+        serverCertificate = null;
+        serverKey = null;
+        clientCA = null;
+      };
+    };
+  };
+  spiffeConfig = evaluateConfig spiffeServices;
+  spiffeAgent = spiffeConfig.systemd.services.kaiba-agent.serviceConfig;
+  spiffeController = spiffeConfig.systemd.services.kaiba-controller.serviceConfig;
+  spiffePublisher = spiffeConfig.systemd.services.kaiba-publisher.serviceConfig;
+  spiffeBoundary =
+    builtins.elem "AF_UNIX" spiffeAgent.RestrictAddressFamilies
+    && lib.hasInfix "--workload-api-socket" spiffeAgent.ExecStart
+    && lib.hasInfix "--controller-spiffe-id" spiffeAgent.ExecStart
+    && !(lib.hasInfix "--client-cert" spiffeAgent.ExecStart)
+    && lib.hasInfix "--fleet-authorization-url" spiffeController.ExecStart
+    && lib.hasInfix "--fleet-server-spiffe-id" spiffeController.ExecStart
+    && !(lib.hasInfix "--tls-cert" spiffeController.ExecStart)
+    && spiffeController.InaccessiblePaths == [ "/run/credentials/update.secret" ]
+    && spiffePublisher.InaccessiblePaths == [ "-/run/kaiba/identity/local/public/api.sock" ]
+    && lib.hasInfix "--tsig-secret-file" spiffePublisher.ExecStart
+    && !(lib.hasInfix "--workload-api-socket" spiffePublisher.ExecStart);
 in
+assert lib.assertMsg (assertionsPass spiffeServices) (
+  builtins.toJSON (failedMessages spiffeServices)
+);
+assert lib.assertMsg spiffeBoundary "SPIFFE transport or publisher isolation is not enforced";
+assert lib.assertMsg (
+  !assertionsPass (
+    lib.recursiveUpdate spiffeServices {
+      kaiba.deviceAgent.credentials.clientKey = "/run/unexpected.key";
+    }
+  )
+) "mixed SPIFFE and file agent credentials were accepted";
+assert lib.assertMsg (
+  !assertionsPass (
+    lib.recursiveUpdate spiffeServices {
+      kaiba.updateController.credentials.serverKey = "/run/unexpected.key";
+    }
+  )
+) "mixed SPIFFE and file controller credentials were accepted";
+assert lib.assertMsg (
+  !assertionsPass (
+    lib.recursiveUpdate spiffeServices {
+      kaiba.updateController.identity.fleetServerSPIFFEID = "";
+    }
+  )
+) "missing exact fleet server ID was accepted";
+assert lib.assertMsg (
+  !assertionsPass (
+    lib.recursiveUpdate spiffeServices {
+      kaiba.updateController.identity.fleetAuthorizationURL = "http://fleet.test";
+    }
+  )
+) "insecure fleet authorization endpoint was accepted";
+assert lib.assertMsg (
+  !assertionsPass (
+    lib.recursiveUpdate spiffeServices {
+      kaiba.deviceAgent.identity.workloadAPISocket = "unix://remote/run/socket";
+    }
+  )
+) "remote workload socket was accepted";
 assert lib.assertMsg (assertionsPass primary) (builtins.toJSON (failedMessages primary));
 assert lib.assertMsg (assertionsPass standby) (builtins.toJSON (failedMessages standby));
 assert lib.assertMsg (assertionsPass publicSecondary) (
@@ -219,6 +303,8 @@ pkgs.runCommand "kaiba-dns-module-evaluation" { } ''
     'standby: pass' \
     'public-secondary: pass' \
     'application-services: pass' \
+    'spiffe-current-authorization-and-publisher-isolation: pass' \
+    'spiffe-file-mode-exclusivity: pass' \
     'controller-publisher-uid-and-state-boundary: pass' \
     'sqlite-main-wal-shm-permissions-prepared: pass' \
     'two-distinct-nonempty-observers-required: pass' \

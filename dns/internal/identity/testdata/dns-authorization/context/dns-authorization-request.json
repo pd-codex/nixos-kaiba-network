@@ -1,0 +1,4 @@
+{
+  "spiffe_id": "spiffe://kaiba.network/device/device-fixture-001/instance/instance-fixture-001/workload/dns-updater",
+  "request_id": "0123456789abcdef0123456789abcdef"
+}

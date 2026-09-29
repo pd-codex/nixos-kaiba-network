@@ -1,5 +1,11 @@
 # Device identity and credential lifecycle
 
+The additive [SPIFFE DNS integration](spiffe-dns.md) supplies rotating Workload
+API credentials and per-request authenticated fleet authorization when
+explicitly enabled. Default file-certificate mode retains the legacy pilot
+boundary described below. SPIFFE does not replace enrollment, certificate-tuple
+activation, or this document's hardware requirements.
+
 This document defines a target production security contract for provisioning,
 enrolling, operating, rotating, recovering, and retiring Kaiba device
 credentials. It is deliberately platform-neutral: a hardware security module,
