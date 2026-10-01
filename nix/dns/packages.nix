@@ -22,7 +22,7 @@ let
       "cmd/kaiba-publisher"
     ];
 
-    vendorHash = "sha256-L0bg2g9ZX+lvggWbSRwAcJRq1m84Hyp03+LNA8zQ1ME=";
+    vendorHash = "sha256-NeV1al0R1jDPqdqtKayuaY6vfvkbIFpmpYoUKT5K0Lc=";
 
     doCheck = true;
     checkPhase = ''

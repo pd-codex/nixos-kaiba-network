@@ -26,6 +26,7 @@ var idempotencyKeyPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,12
 
 type Config struct {
 	Identity                identity.Policy
+	RequestIdentity         identity.RequestPolicy
 	Store                   store.DesiredState
 	LeaseDuration           time.Duration
 	RenewAfter              time.Duration
@@ -35,6 +36,7 @@ type Config struct {
 
 type Handler struct {
 	identity                identity.Policy
+	requestIdentity         identity.RequestPolicy
 	store                   store.DesiredState
 	leaseDuration           time.Duration
 	renewAfter              time.Duration
@@ -44,8 +46,8 @@ type Handler struct {
 }
 
 func New(config Config) (*Handler, error) {
-	if config.Identity == nil || config.Store == nil {
-		return nil, errors.New("identity policy and desired-state store are required")
+	if (config.Identity == nil) == (config.RequestIdentity == nil) || config.Store == nil {
+		return nil, errors.New("exactly one identity policy and a desired-state store are required")
 	}
 	if config.LeaseDuration <= 0 || config.RenewAfter <= 0 || config.RenewAfter >= config.LeaseDuration {
 		return nil, errors.New("renew-after must be positive and shorter than lease-duration")
@@ -54,7 +56,7 @@ func New(config Config) (*Handler, error) {
 		config.Now = time.Now
 	}
 	h := &Handler{
-		identity: config.Identity, store: config.Store, leaseDuration: config.LeaseDuration,
+		identity: config.Identity, requestIdentity: config.RequestIdentity, store: config.Store, leaseDuration: config.LeaseDuration,
 		renewAfter: config.RenewAfter, allowNonGlobalAddresses: config.AllowNonGlobalAddresses,
 		now: config.Now, mux: http.NewServeMux(),
 	}
@@ -73,6 +75,9 @@ func (h *Handler) health(response http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *Handler) authenticate(request *http.Request) (identity.Device, error) {
+	if h.requestIdentity != nil {
+		return h.requestIdentity.ResolveRequest(request.Context(), request.TLS)
+	}
 	if request.TLS == nil || len(request.TLS.VerifiedChains) == 0 || len(request.TLS.VerifiedChains[0]) == 0 {
 		return identity.Device{}, errors.New("a verified client certificate is required")
 	}
@@ -82,7 +87,7 @@ func (h *Handler) authenticate(request *http.Request) (identity.Device, error) {
 func (h *Handler) putEndpoints(response http.ResponseWriter, request *http.Request) {
 	device, err := h.authenticate(request)
 	if err != nil {
-		writeError(response, http.StatusUnauthorized, "unauthenticated", "a valid device certificate is required")
+		writeAuthenticationError(response, err)
 		return
 	}
 	idempotencyKey := request.Header.Get("Idempotency-Key")
@@ -212,7 +217,7 @@ func (h *Handler) validateAddresses(input []api.Address) ([]netip.Addr, error) {
 func (h *Handler) getStatus(response http.ResponseWriter, request *http.Request) {
 	device, err := h.authenticate(request)
 	if err != nil {
-		writeError(response, http.StatusUnauthorized, "unauthenticated", "a valid device certificate is required")
+		writeAuthenticationError(response, err)
 		return
 	}
 	intent, err := h.store.GetIntent(request.Context(), device.ID)
@@ -251,6 +256,17 @@ func (h *Handler) deviceState(intent model.Intent, renewAfterSeconds int64) api.
 
 func writeError(response http.ResponseWriter, status int, code, message string) {
 	writeJSON(response, status, api.Error{Code: code, Message: message})
+}
+
+func writeAuthenticationError(response http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, identity.ErrDenied):
+		writeError(response, http.StatusForbidden, "forbidden", "workload is not currently authorized")
+	case errors.Is(err, identity.ErrUnavailable):
+		writeError(response, http.StatusServiceUnavailable, "authorization_unavailable", "current workload authorization is unavailable")
+	default:
+		writeError(response, http.StatusUnauthorized, "unauthenticated", "a valid device certificate is required")
+	}
 }
 
 func writeJSON(response http.ResponseWriter, status int, value any) {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"log"
+	"net/http"
 	"net/netip"
 	"os"
 	"os/signal"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/ams-tech/nixos-kaiba-network/dns/internal/agent"
 	"github.com/ams-tech/nixos-kaiba-network/dns/internal/cliutil"
+	"github.com/ams-tech/nixos-kaiba-network/dns/internal/identity"
 )
 
 func main() {
@@ -24,6 +26,9 @@ func main() {
 	certFile := flag.String("client-cert", cliutil.Env("KAIBA_AGENT_CLIENT_CERT", ""), "device certificate file")
 	keyFile := flag.String("client-key", cliutil.Env("KAIBA_AGENT_CLIENT_KEY", ""), "device private-key file")
 	caFile := flag.String("ca", cliutil.Env("KAIBA_AGENT_CA", ""), "controller CA bundle")
+	identityMode := flag.String("identity-mode", cliutil.Env("KAIBA_AGENT_IDENTITY_MODE", "file"), "identity transport: file or spiffe")
+	socket := flag.String("workload-api-socket", cliutil.Env("KAIBA_AGENT_WORKLOAD_API_SOCKET", ""), "explicit unix:/// SPIFFE Workload API socket")
+	controllerID := flag.String("controller-spiffe-id", cliutil.Env("KAIBA_AGENT_CONTROLLER_SPIFFE_ID", ""), "exact expected controller SPIFFE ID")
 	addresses := cliutil.CSVEnv("KAIBA_AGENT_ADDRESSES")
 	flag.Var(&addresses, "address", "explicit endpoint IP address (repeatable)")
 	interfaces := cliutil.CSVEnv("KAIBA_AGENT_INTERFACES")
@@ -33,8 +38,8 @@ func main() {
 	requestTimeout := flag.Duration("request-timeout", timeoutDefault, "one HTTP request timeout")
 	once := flag.Bool("once", onceDefault, "submit once and exit")
 	flag.Parse()
-	if *endpoint == "" || *certFile == "" || *keyFile == "" || *caFile == "" {
-		log.Fatal("--endpoint, --client-cert, --client-key, and --ca are required")
+	if *endpoint == "" {
+		log.Fatal("--endpoint is required")
 	}
 	parsedAddresses := make([]netip.Addr, 0, len(addresses))
 	for _, value := range addresses {
@@ -44,10 +49,33 @@ func main() {
 		}
 		parsedAddresses = append(parsedAddresses, addr)
 	}
-	httpClient, err := agent.NewHTTPClient(*certFile, *keyFile, *caFile, *requestTimeout)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	var httpClient *http.Client
+	var err error
+	switch *identityMode {
+	case "file":
+		if *certFile == "" || *keyFile == "" || *caFile == "" || *socket != "" || *controllerID != "" {
+			log.Fatal("file mode requires --client-cert, --client-key, --ca and forbids SPIFFE options")
+		}
+		httpClient, err = agent.NewHTTPClient(*certFile, *keyFile, *caFile, *requestTimeout)
+	case "spiffe":
+		if *certFile != "" || *keyFile != "" || *caFile != "" || *controllerID == "" {
+			log.Fatal("spiffe mode requires --controller-spiffe-id and --workload-api-socket and forbids file credentials")
+		}
+		source, sourceErr := identity.NewWorkloadSource(ctx, *socket, *requestTimeout)
+		if sourceErr != nil {
+			log.Fatal(sourceErr)
+		}
+		defer source.Close()
+		httpClient, err = identity.WorkloadHTTPClient(source, *controllerID, *requestTimeout)
+	default:
+		log.Fatal("--identity-mode must be file or spiffe")
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer httpClient.CloseIdleConnections()
 	service, err := agent.New(agent.Config{
 		Endpoint: *endpoint, Addresses: parsedAddresses, Interfaces: interfaces,
 		StatePath: *statePath, HTTPClient: httpClient, RenewInterval: *renewInterval,
@@ -57,8 +85,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 	if err := service.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		log.Fatal(err)
 	}

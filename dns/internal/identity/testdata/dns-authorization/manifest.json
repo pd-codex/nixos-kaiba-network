@@ -1,0 +1,20 @@
+{
+  "repository": "https://github.com/pd-codex/kaiba-contracts",
+  "commit": "a6ce2a397b2fe2dbdee8d5d2236fbd002ef6dc21",
+  "contract_version": "0.5.0-draft.1",
+  "files": {
+    "valid/dns-authorization-current.json": "f5eb7d58f31d2183ac34873341a1670dd0d0c262b565eb7ec97e354789613b76",
+    "valid/dns-authorization-fractional-rollover.json": "18c8a5352ebc0a67989cffc79ff5ca6c7ce47417750838c31cc3358fa807b1b8",
+    "invalid/dns-authorization-envelope-field.json": "f09f0b9763cd016c3c004ef4efd87f7ec496d07c95051023fff1ac7f050d29ad",
+    "invalid/dns-authorization-extended-window.json": "ce49bd2a2caf87b329fb9d90ad58305527e7a49f2cf3068c18256cd9af36cb3a",
+    "invalid/dns-authorization-hostname-alias.json": "17da77a42d2c0801b0e5bfc7724eacbc9fbb8588100a8d86ecfcd3a9db67a0b2",
+    "invalid/dns-authorization-nanosecond-time.json": "e5b485cd11fecdaacde951c595a12977c547ceee68f5475c4da7abe4b66d6df2",
+    "invalid/dns-authorization-offset-time.json": "c1e0c0dd3dec363f66875375f8471f7ef62ee3b30e038d0fce217509601d7d0f",
+    "invalid/dns-authorization-old-version.json": "28af3ac2538558329ee14a063fcf6615882ca5785c69af8e77bdf638db3c4e21",
+    "invalid/dns-authorization-other-instance.json": "06345ac5ff5c7ebc14bf8f19e17a7dd12b59ee0660e0c9cb00aad9a9442bcf1d",
+    "invalid/dns-authorization-uppercase-nonce.json": "1c0e335f26ee6c41796786b2f1b7ad3a47a3c296e9c4ab040b515455531d138f",
+    "invalid/dns-authorization-wrong-dns-id.json": "1488e2b462dbd91062d6ed086fe9c476e8e22598a48224f01208e81336015028",
+    "invalid/dns-authorization-wrong-workload.json": "43b6c9ba8d396fd6fbb2c6cd7c316eb3face5901258f231685de328bc4d7f7df",
+    "context/dns-authorization-request.json": "d7b589760d32e5001c98e9b20e760c07db931d4c2f824e1c28fd60831619ef21"
+  }
+}

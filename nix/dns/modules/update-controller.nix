@@ -57,18 +57,32 @@ let
     listenEndpoint
     "--db"
     cfg.databasePath
-    "--tls-cert"
-    (toString cfg.credentials.serverCertificate)
-    "--tls-key"
-    (toString cfg.credentials.serverKey)
-    "--client-ca"
-    (toString cfg.credentials.clientCA)
+    "--identity-mode"
+    cfg.identity.mode
     "--zone"
     cfg.zone
     "--lease-duration"
     cfg.leaseDuration
     "--renew-after"
     cfg.renewAfter
+  ]
+  ++ optionals (cfg.identity.mode == "file") [
+    "--tls-cert"
+    (toString cfg.credentials.serverCertificate)
+    "--tls-key"
+    (toString cfg.credentials.serverKey)
+    "--client-ca"
+    (toString cfg.credentials.clientCA)
+  ]
+  ++ optionals (cfg.identity.mode == "spiffe") [
+    "--workload-api-socket"
+    cfg.identity.workloadAPISocket
+    "--spiffe-trust-domain"
+    cfg.identity.trustDomain
+    "--fleet-authorization-url"
+    cfg.identity.fleetAuthorizationURL
+    "--fleet-server-spiffe-id"
+    cfg.identity.fleetServerSPIFFEID
   ]
   ++ optionals cfg.controller.allowNonGlobalAddresses [ "--allow-non-global-addresses" ]
   ++ cfg.controller.extraArgs;
@@ -138,6 +152,37 @@ in
 {
   options.kaiba.updateController = {
     enable = mkEnableOption "the Kaiba mTLS update controller and single DNS publisher";
+
+    identity = {
+      mode = mkOption {
+        type = types.enum [
+          "file"
+          "spiffe"
+        ];
+        default = "file";
+        description = "Explicit transport identity mode. SPIFFE requires live authenticated fleet authorization on every protected request.";
+      };
+      workloadAPISocket = mkOption {
+        type = types.str;
+        default = "";
+        description = "Local unix:/// SPIFFE Workload API endpoint used by the controller for both inbound TLS and fleet RPC.";
+      };
+      trustDomain = mkOption {
+        type = types.str;
+        default = "";
+        description = "Only workload trust domain accepted by the DNS controller.";
+      };
+      fleetAuthorizationURL = mkOption {
+        type = types.str;
+        default = "";
+        description = "Fleet workload-registry HTTPS origin, without a path; decisions are never cached.";
+      };
+      fleetServerSPIFFEID = mkOption {
+        type = types.str;
+        default = "";
+        description = "Exact expected fleet workload-registry SPIFFE ID.";
+      };
+    };
 
     zone = mkOption {
       type = types.str;
@@ -330,9 +375,14 @@ in
       }
       {
         assertion =
-          cfg.credentials.serverCertificate != null
-          && cfg.credentials.serverKey != null
-          && cfg.credentials.clientCA != null
+          (
+            cfg.identity.mode != "file"
+            || (
+              cfg.credentials.serverCertificate != null
+              && cfg.credentials.serverKey != null
+              && cfg.credentials.clientCA != null
+            )
+          )
           && cfg.credentials.publisherTSIGSecret != null;
         message = "Controller mTLS credentials and publisherTSIGSecret runtime paths are required.";
       }
@@ -346,13 +396,32 @@ in
       }
       {
         assertion =
-          builtins.length (unique [
-            cfg.credentials.serverCertificate
-            cfg.credentials.serverKey
-            cfg.credentials.clientCA
-            cfg.credentials.publisherTSIGSecret
-          ]) == 4;
+          cfg.identity.mode != "file"
+          ||
+            builtins.length (unique [
+              cfg.credentials.serverCertificate
+              cfg.credentials.serverKey
+              cfg.credentials.clientCA
+              cfg.credentials.publisherTSIGSecret
+            ]) == 4;
         message = "TLS certificate, TLS key, client CA, and publisher TSIG files must be distinct.";
+      }
+      {
+        assertion =
+          if cfg.identity.mode == "spiffe" then
+            cfg.credentials.serverCertificate == null
+            && cfg.credentials.serverKey == null
+            && cfg.credentials.clientCA == null
+            && builtins.match "unix:///[^?#]+" cfg.identity.workloadAPISocket != null
+            && cfg.identity.trustDomain != ""
+            && hasPrefix "https://" cfg.identity.fleetAuthorizationURL
+            && hasPrefix "spiffe://" cfg.identity.fleetServerSPIFFEID
+          else
+            cfg.identity.workloadAPISocket == ""
+            && cfg.identity.trustDomain == ""
+            && cfg.identity.fleetAuthorizationURL == ""
+            && cfg.identity.fleetServerSPIFFEID == "";
+        message = "SPIFFE mode requires a local socket, trust domain and authenticated fleet endpoint with exact server ID, exclusively from file credentials.";
       }
       {
         assertion = hasPrefix "/var/lib/${cfg.stateDirectory}/" cfg.databasePath;
@@ -447,7 +516,11 @@ in
           Group = "kaiba-publisher";
           SupplementaryGroups = [ "kaiba-state" ];
           ReadWritePaths = [ statePath ];
-          InaccessiblePaths = controllerCredentialPaths;
+          InaccessiblePaths =
+            controllerCredentialPaths
+            ++ optionals (cfg.identity.mode == "spiffe") [
+              "-${lib.removePrefix "unix://" cfg.identity.workloadAPISocket}"
+            ];
           UMask = "0007";
           Restart = if cfg.publisher.once then "no" else "on-failure";
           RestartSec = "3s";

@@ -2,6 +2,10 @@
 
 This self-contained module implements the secure-device dynamic DNS pilot.
 
+The optional [SPIFFE identity mode](../docs/spiffe-dns.md) uses rotating
+Workload API credentials and authenticated fleet authorization for each DNS
+request. Static certificate files remain the default.
+
 ## Commands
 
 - `kaiba-agent` submits a device's complete public address set.
