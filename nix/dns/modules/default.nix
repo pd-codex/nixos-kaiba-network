@@ -7,5 +7,6 @@
     ./hidden-primary.nix
     ./hidden-standby.nix
     ./public-secondary.nix
+    ./lan-qualification.nix
   ];
 }
